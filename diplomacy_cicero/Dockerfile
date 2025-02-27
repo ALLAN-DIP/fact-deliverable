@@ -45,6 +45,7 @@ RUN pip install --no-cache-dir -e ./thirdparty/github/fairinternal/postman/nest/
     && pip install --no-cache-dir -e ./thirdparty/github/fairinternal/postman/postman/
 
 # Install application requirements
+COPY chiron-utils/ chiron-utils/
 COPY requirements-lock.txt .
 RUN pip install --no-cache-dir -r requirements-lock.txt \
     && spacy download en_core_web_sm

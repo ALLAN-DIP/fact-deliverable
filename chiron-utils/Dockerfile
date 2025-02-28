@@ -19,6 +19,8 @@ RUN apt-get -y update \
 RUN pip install --no-cache-dir --upgrade pip==25.0.1
 
 # Install required packages
+COPY baseline-models/ baseline-models/
+COPY diplomacy/ diplomacy/
 COPY requirements-lock.txt .
 COPY pyproject.toml .
 ARG TARGET

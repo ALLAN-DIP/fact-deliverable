@@ -4,8 +4,6 @@
 # Use the command `hadolint Dockerfile` to test
 # Adding Hadolint to `pre-commit` is non-trivial, so the command must be run manually
 
-FROM ghcr.io/allan-dip/chiron-utils:baseline-lr-model-2025-01-14 AS baseline-lr-model
-
 FROM python:3.11.11-slim-bookworm AS base
 
 WORKDIR /bot
@@ -41,4 +39,4 @@ LABEL org.opencontainers.image.source=https://github.com/ALLAN-DIP/chiron-utils
 
 FROM base AS baseline-lr
 
-COPY --from=baseline-lr-model lr_model/ lr_model/
+COPY lr_model/ lr_model/

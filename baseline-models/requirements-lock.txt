@@ -1,0 +1,23 @@
+bcrypt==4.2.0
+certifi==2024.8.30
+charset-normalizer==3.4.0
+colorama==0.4.6
+coloredlogs==15.0.1
+diplomacy @ git+https://git@github.com/ALLAN-DIP/diplomacy.git@f600344158c85fb933b6c1d0fff61e80bd529648
+humanfriendly==10.0
+idna==3.10
+joblib==1.4.2
+numpy==1.26.4
+pyreadline3==3.5.4
+python-dateutil==2.9.0.post0
+pytz==2024.2
+requests==2.32.3
+scikit-learn==1.4.1.post1
+scipy==1.14.1
+setuptools==75.4.0
+six==1.16.0
+threadpoolctl==3.5.0
+tornado==6.4.1
+tqdm==4.66.5
+ujson==5.10.0
+urllib3==2.2.3

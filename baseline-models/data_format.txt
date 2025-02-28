@@ -1,0 +1,15 @@
+Definitions:
+- 3LC: 3 letter code (typically for cities)
+
+standard_no_press.jsonl:
+- Each entry contains keys 'id', 'map', 'rules', 'phases'
+    - 'map' should be standard
+- 'phases': list of dicts with keys 'name', 'state', 'orders', 'results', 'messages'
+- 'state': dict with keys 'units', 'centers', 'homes', 'influence', 'civil_disorder', 'builds', 'game_id', 'map', 'rules', 'retreats'
+    - 'units': dict mapping powers to lists of A or F for army / fleet respectively, followed by 3LC city.
+    - 'centers': dict mapping powers to lists of supply centers
+    - 'homes': ?
+    - 'influence': dict mapping powers to lists of 3LC cities last occupied.
+    - 'civil_disorder': only important when a player leaves the game
+    - 'builds': ?
+- 'orders': dict mapping powers to their actions

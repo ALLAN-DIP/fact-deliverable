@@ -1,0 +1,199 @@
+[build-system]
+requires = ["setuptools>=66.1"] # Minimum version that properly bundles `file:`s in sdists
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chiron_utils"
+version = "0.0.1"
+description = "CHIRON advisors and library for CHIRON utilities"
+readme = "README.md"
+authors = [
+  { name = "ALLAN" },
+]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Games/Entertainment",
+  "Topic :: Games/Entertainment :: Board Games",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.7"
+license = { text = "MIT" }
+dependencies = [
+  "daidepp @ git+https://git@github.com/SHADE-AI/daidepp.git@f84f7279fb4a31083ad8e4b5fcf6d1ed290bae0e",
+  # Pinned `diplomacy` to `main`
+  "diplomacy @ git+https://git@github.com/ALLAN-DIP/diplomacy.git@f600344158c85fb933b6c1d0fff61e80bd529648",
+  'importlib-metadata ; python_version < "3.10"',
+  "tornado",
+]
+
+[project.optional-dependencies]
+# `all` extra allows an easy install of all optional dependencies
+all = [
+  "chiron_utils[base]",
+  "chiron_utils[baseline-lr]",
+  "chiron_utils[dev]",
+]
+# Default extra to make OCI image builds easier
+base = []
+baseline-lr = [
+  "baseline-models @ git+https://git@github.com/ALLAN-DIP/baseline-models.git@9a2f52a65abf2e461035cb5b5a721fca851eeb1e",
+]
+dev = [
+  # Use older `mypy` version to keep code compatible with Python 3.7
+  "mypy<1.9",
+  "pre-commit",
+  "pylint",
+  "pytest",
+]
+
+[project.urls]
+Homepage = "https://github.com/ALLAN-DIP/chiron-utils"
+
+[tool.black]
+line-length = 100
+
+[tool.codespell]
+ignore-regex = "\\[nt]" # Do not count escaped newlines or tabs as part of a word
+# `astroid` is a dependency of pylint
+# "HEL", "SER", and "VIE" are from DAIDE
+ignore-words-list = "astroid,hel,ser,vie"
+quiet-level = 0 # Display all warnings
+check-filenames = ""
+check-hidden = ""
+
+[tool.mypy]
+show_error_codes = true
+ignore_missing_imports = true
+python_version = "3.7"
+strict = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+# Needed to prevent `.../site-packages/_pytest/mark/__init__.py:187: error: Positional-only parameters are only supported in Python 3.8 and greater  [syntax]`
+module = "pytest"
+follow_imports = "skip"
+
+[tool.ruff]
+fix = true
+line-length = 100
+# Show full violation messages by setting `RUFF_OUTPUT_FORMAT=full` in environment
+output-format = "concise"
+show-fixes = true
+
+[tool.ruff.lint]
+select = [
+  "A", # flake8-builtins
+  "ASYNC", # flake8-async
+  "B", # flake8-bugbear
+  "BLE", # flake8-blind-except
+  "C4", # flake8-comprehensions
+  "D", # pydocstyle
+  "DTZ", # flake8-datetimez
+  "E", # pycodestyle error
+  "F", # pyflakes
+  "FBT", # flake8-boolean-trap
+  "FLY", # flynt
+  "FURB", # refurb
+  "G", # flake8-logging-format
+  "I", # isort
+  "ICN", # flake8-import-conventions
+  "INP", # flake8-no-pep420
+  "INT", # flake8-gettext
+  "ISC", # flake8-implicit-str-concat
+  "LOG", # flake8-logging
+  "N", # pep8-naming
+  "NPY", # NumPy-specific rules
+  "PIE", # flake8-pie
+  "PT", # flake8-pytest-style
+  "PTH", # flake8-use-pathlib
+  "PYI", # flake8-pyi
+  "RSE", # flake8-raise
+  "RUF", # Ruff-specific rules
+  "S", # flake8-bandit
+  "SIM", # flake8-simplify
+  "SLF", # flake8-self
+  "SLOT", # flake8-slots
+  "T10", # flake8-debugger
+  "TID", # flake8-tidy-imports
+  "UP", # pyupgrade
+  "W", # pycodestyle warning
+  "YTT", # flake8-2020
+]
+ignore = [
+  # Do not switch to `Path.open()` because `open()` is easier to test with
+  # e.g., `open(data_dir / "file_a.txt")` -> `open("test/file_b.txt")`
+  "PTH123", # builtin-open (from flake8-use-pathlib)
+  # Keep `assert` statements because they are often used to express typing constraints for `mypy`
+  # In addition, most people do not run Python with optimized bytecode
+  "S101", # assert (from flake8-bandit)
+  # Most code we work with is not cryptographically sensitive,
+  # so the `random` module is safe to use
+  "S311", # suspicious-non-cryptographic-random-usage (from flake8-bandit)
+  # Allow parsing XML from untrusted sources
+  # The Python documentation (https://docs.python.org/3.13/library/xml.html#xml-vulnerabilities)
+  # states that the vulnerabilities are denial-of-service attacks, which are not much of a concern
+  # to us. In addition, the vulnerabilities are in Expat itself, so these vulnerabilities have been
+  # patched when using recent versions of the library.
+  "S314", # suspicious-xml-element-tree-usage (from flake8-bandit)
+  # Ternary expressions are often less readable than `if`-`else` blocks,
+  # so they should not be required
+  "SIM108", # if-else-block-instead-of-if-exp (from flake8-simplify)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore `INP001` (implicit-namespace-package) in `test/` directory because pytest recommends
+# not using `__init__.py` files: https://docs.pytest.org/en/7.4.x/explanation/goodpractices.html
+"tests/**.py" = ["INP001"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.pycodestyle]
+# Detect extra-long lines that Black can't handle
+max-line-length = 250
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pylint.format]
+# Let other tools handle line length
+max-line-length = 250
+
+[tool.pylint.imports]
+# Need to either set this or stop using the `import X as X` that mypy wants
+allow-reexport-from-package = true
+
+[tool.pylint.messages_control]
+# Most of these are disabled to prevent issues with dependencies being difficult to inspect
+# pylint FAQ recommends disabling:
+# - `wrong-import-order` when using `isort`
+# - `missing-module-docstring`, `missing-class-docstring`,
+#   `missing-function-docstring` when using `pydocstyle`
+# Disabled `consider-using-f-string` because handled by `pyupgrade`
+# Disabled because handled by `flake8-logging-format`:
+# - `logging-format-interpolation`
+# - `logging-fstring-interpolation`
+# - `logging-not-lazy`
+# Disabled `broad-exception-caught` because handled by `flake8-blind-except`
+disable = """
+R,fixme,no-member,unsupported-membership-test,unsubscriptable-object,
+unsupported-assignment-operation,not-an-iterable,too-many-lines,wrong-import-order,
+missing-module-docstring,missing-class-docstring,missing-function-docstring,
+consider-using-f-string,logging-format-interpolation,logging-fstring-interpolation,logging-not-lazy,
+broad-exception-caught
+"""
+
+[tool.pylint.reports]
+score = false
+
+[tool.pytest.ini_options]
+addopts = "--verbosity=2"
+filterwarnings = [
+  "ignore::DeprecationWarning",
+]

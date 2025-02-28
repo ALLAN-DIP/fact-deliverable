@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=66.1"] # Minimum version that properly bundles `file:`s in sdists
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baseline_models"
+version = "1.0"
+description = "Baseline models for Diplomacy advisory bot"
+readme = "README.md"
+authors = [
+  { name = "ALLAN" },
+]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Games/Entertainment",
+  "Topic :: Games/Entertainment :: Board Games",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dynamic = [
+  "dependencies",
+]
+
+[project.urls]
+Homepage = "https://github.com/ALLAN-DIP/baseline-models"
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }

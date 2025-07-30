@@ -15,7 +15,3 @@ To build and run most agents, follow the instructions in [`diplomacy_cicero/chir
 ### CICERO
 
 To build and run the CICERO agents, follow the instructions in [`diplomacy_cicero/README.md`](diplomacy_cicero/README.md).
-
-### Metrics
-
-To use the metrics code, follow the instructions in [`metrics/README.md`](metrics/README.md).

@@ -12,6 +12,6 @@ To build and run the _Diplomacy_ server, follow the instructions in [`diplomacy_
 
 To build and run most agents, follow the instructions in [`diplomacy_cicero/chiron-utils/README.md`](diplomacy_cicero/chiron-utils/README.md).
 
-### CICERO
+### Cicero
 
-To build and run the CICERO agents, follow the instructions in [`diplomacy_cicero/README.md`](diplomacy_cicero/README.md).
+To build and run the Cicero agents, follow the instructions in [`diplomacy_cicero/README.md`](diplomacy_cicero/README.md).

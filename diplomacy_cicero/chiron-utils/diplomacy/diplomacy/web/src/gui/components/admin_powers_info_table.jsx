@@ -1,15 +1,5 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Slider } from "./slider";
-import { Button } from "./button";
-
-const stanceDict = {
-    1: "Very hostile",
-    2: "Slightly hostile",
-    3: "Neutral",
-    4: "Slightly friendly",
-    5: "Very friendly",
-};
 
 class DefaultWrapper {
     constructor(data) {
@@ -62,18 +52,9 @@ export class AdminPowersInfoTable extends React.Component {
         );
     }
 
-    getBodyRow(
-        header,
-        row,
-        rowIndex,
-        wrapper,
-        countries,
-        stances,
-        isBot,
-        player
-    ) {
+    getBodyRow(header, row, rowIndex, wrapper, countries, stances, isBot, player) {
         const wrapped = wrapper(row);
-        
+
         return (
             <tr key={rowIndex}>
                 {header.map((headerColumn, colIndex) => (
@@ -89,16 +70,7 @@ export class AdminPowersInfoTable extends React.Component {
         return (
             <tbody>
                 {data.map((row, rowIndex) =>
-                    this.getBodyRow(
-                        header,
-                        row,
-                        rowIndex,
-                        wrapper,
-                        countries,
-                        stances,
-                        isBot,
-                        player
-                    )
+                    this.getBodyRow(header, row, rowIndex, wrapper, countries, stances, isBot, player),
                 )}
             </tbody>
         );
@@ -120,7 +92,7 @@ export class AdminPowersInfoTable extends React.Component {
                         this.props.countries,
                         this.props.stances,
                         this.props.isBot,
-                        this.props.player
+                        this.props.player,
                     )}
                 </table>
             </div>

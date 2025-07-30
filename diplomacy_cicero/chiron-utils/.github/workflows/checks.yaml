@@ -26,13 +26,16 @@ jobs:
     runs-on: ubuntu-22.04 # Pinned version of `ubuntu-latest`
     name: Run checks
     env:
-      PYTHON_VERSION: 3.11.11
+      PYTHON_VERSION: 3.11.13
     defaults:
       run:
         shell: bash -leo pipefail {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Prevent credentials from being accidentally used in other steps
+          persist-credentials: false
 
       - name: Initialize Python environment
         uses: actions/setup-python@v5
@@ -53,7 +56,7 @@ jobs:
         run: |
           SKIP=no-commit-to-branch make check
 
-  # Run tests for Python 3.7 to limit any version-related breakages in CICERO
+  # Run tests for Python 3.7 to limit any version-related breakages in Cicero
   checks-py37:
     runs-on: ubuntu-22.04 # Pinned version of `ubuntu-latest`
     name: Run Python 3.7 checks
@@ -65,6 +68,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Prevent credentials from being accidentally used in other steps
+          persist-credentials: false
 
       - name: Initialize Python environment
         uses: actions/setup-python@v5

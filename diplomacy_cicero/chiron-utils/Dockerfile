@@ -4,7 +4,13 @@
 # Use the command `hadolint Dockerfile` to test
 # Adding Hadolint to `pre-commit` is non-trivial, so the command must be run manually
 
-FROM python:3.11.11-slim-bookworm AS base
+FROM ghcr.io/allan-dip/chiron-utils:baseline-lr-model-2025-01-14 AS baseline-lr-model
+
+FROM python:3.11.13-slim-bookworm AS base
+
+# Allow bot to detect whether running in a container
+# Using ID from https://www.freedesktop.org/software/systemd/man/257/systemd-detect-virt.html
+ENV VIRT=docker
 
 WORKDIR /bot
 
@@ -14,11 +20,10 @@ RUN apt-get -y update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade pip==25.0.1
+RUN pip install --no-cache-dir --upgrade pip==25.1.1 \
+    && pip uninstall --yes setuptools wheel
 
 # Install required packages
-COPY baseline-models/ baseline-models/
-COPY diplomacy/ diplomacy/
 COPY requirements-lock.txt .
 COPY pyproject.toml .
 ARG TARGET
@@ -39,4 +44,4 @@ LABEL org.opencontainers.image.source=https://github.com/ALLAN-DIP/chiron-utils
 
 FROM base AS baseline-lr
 
-COPY lr_model/ lr_model/
+COPY --from=baseline-lr-model lr_model/ lr_model/

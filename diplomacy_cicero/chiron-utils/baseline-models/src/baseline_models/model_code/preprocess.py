@@ -8,6 +8,46 @@ from baseline_models.utils.utils import return_logger
 logger = return_logger(__name__)
 
 
+
+def get_power_of_unit(state: dict, unit: str) ->  str:
+    """
+    Gets the power of the unit
+
+    Args:
+        state (dict): Dictionary storing state information
+        unit (str): string of the unit
+
+    Returns:
+        (str): the name of the power that the unit belongs to
+        If not found, None is returned.
+    """
+    units = state["units"]
+    for (power, unit_ls) in units.items():
+        if unit in unit_ls:
+            return power
+        if f'*{unit}' in unit_ls:
+            return power
+    return None
+
+
+def get_power_of_home(state: dict, home: str) -> str: 
+    """
+    Gets the power of a home province
+
+    Args:
+        state (dict): Dictionary storing state information
+        home (str): string of the home (uppercase 3 letter code)
+
+    Returns:
+        (str): the name of the power that the home province belongs to 
+        If not found, None is returned.
+    """
+    homes = state["homes"]
+    for (power, homes_ls) in homes.items():
+        if home in homes_ls:
+            return power
+    return None
+
 def get_unit_from_order(order: str) -> str:
     order_terms = order.split(" ")
     return " ".join(order_terms[0:2])
@@ -67,6 +107,10 @@ def entry_to_vectors(phase: dict) -> tuple:
                             classes.append("A " + home + " B")
                         elif "F " + home + " B" in order_list:
                             classes.append("F " + home + " B")
+                        elif "F " + home + "/NC B" in order_list:
+                            classes.append("F " + home + "/NC B")
+                        elif "F " + home + "/SC B" in order_list:
+                            classes.append("F " + home + "/SC B")
                         else:
                             classes.append(CLASSNOORDER)
                     else:
@@ -154,11 +198,11 @@ def generate_attribute(state: dict, name_data=None, units_data=None, centers_dat
         # Encoding units
         if power in units_data:
             if not units_data[power] is None:
-                for i, region in enumerate(TERRITORIES):
+                for i, region in enumerate(INFLUENCES):
                     if f"A {region}" in units_data[power] or f"*A {region}" in units_data[power]:
-                        units_atr[2 * i * n_powers + j] = 1
+                        units_atr[2 * i * n_powers + (j*2)] = 1
                     elif f"F {region}" in units_data[power] or f"*F {region}" in units_data[power]:
-                        units_atr[i * 2 * n_powers + j + 1] = 1
+                        units_atr[2 * i * n_powers + (j*2) + 1] = 1
         # Encoding centers
         if power in centers_data:
             if not centers_data[power] is None:
@@ -182,6 +226,73 @@ def generate_attribute(state: dict, name_data=None, units_data=None, centers_dat
     attribute = np.concatenate((phase_atr, units_atr, centers_atr, homes_atr, influences_atr))
 
     return attribute
+
+
+def get_scaled_masked_attribute(attribute, masked_powers:list=None, mask_phase=False, mask_unit=False, mask_center=False, mask_home=False, mask_influence=False, scaled_powers:dict = None, scale_phase=1, scale_unit=1, scale_center=1, scale_home=1, scale_influence=1):
+
+    if not scaled_powers:
+        scaled_powers = {
+            'AUSTRIA': 1, 
+            'ENGLAND': 1, 
+            'FRANCE': 1, 
+            'GERMANY': 1, 
+            'ITALY': 1, 
+            'RUSSIA': 1, 
+            'TURKEY': 1
+        }
+
+    phase_len = 6
+    masked_attribute = []
+    n_powers = len(POWERS)
+
+    phase_atr = np.zeros([phase_len], dtype=bool)
+    units_atr = np.zeros([n_powers * 2 * len(INFLUENCES)], dtype=bool)
+    centers_atr = np.zeros([n_powers * len(CENTERS)], dtype=bool)
+    homes_atr = np.zeros([n_powers * len(HOMES)], dtype=bool)
+    influences_atr = np.zeros([n_powers * len(TERRITORIES)], dtype=bool)
+
+    k = 0
+    phase_atr = attribute[k:phase_len]
+    k += phase_len
+    units_atr = attribute[k:k + (n_powers * 2 * len(INFLUENCES))]
+    k += n_powers * 2 * len(INFLUENCES)
+    centers_atr = attribute[k:k + (n_powers * len(CENTERS))]
+    k += n_powers * len(CENTERS)
+    homes_atr = attribute[k:k + (n_powers * len(HOMES))]
+    k += n_powers * len(HOMES)
+    influences_atr = attribute[k:k + (n_powers * len(TERRITORIES))]
+
+    if not mask_phase:
+        for val in phase_atr:
+            masked_attribute.append(val*scale_phase)
+
+
+    for j, power in enumerate(POWERS):
+        if masked_powers and power in masked_powers:
+            continue
+
+        if not mask_unit:
+            for i, region in enumerate(INFLUENCES):
+                unit_index = 2 * i * n_powers + (2*j)
+                masked_attribute.append(units_atr[unit_index]*scale_unit*scaled_powers[power])
+                masked_attribute.append(units_atr[unit_index+1]*scale_unit*scaled_powers[power])
+
+        # Encoding centers
+        if not mask_center:
+            for i, center in enumerate(CENTERS):
+                masked_attribute.append(centers_atr[i * n_powers + j]*scale_center*scaled_powers[power])
+
+        # Encoding homes
+        if not mask_home:
+            for i, home in enumerate(HOMES):
+                masked_attribute.append(homes_atr[i * n_powers + j]*scale_home*scaled_powers[power])
+        
+        # Encoding influences
+        if not mask_influence:
+            for i, inf in enumerate(TERRITORIES):
+                masked_attribute.append(influences_atr[i * n_powers + j]*scale_influence*scaled_powers[power])
+    
+    return np.array(masked_attribute)
 
 
 def get_season_phase(name_data: str, abbr=True) -> str:
@@ -255,19 +366,35 @@ def generate_x_y(groups: dict, src: TextIO) -> None:
                 groups[key][1].append(order)
 
 
-def get_messages(state):
-    messages = state["messages"]
-    message_json = json.dumps(messages)
-    return message_json
-
-
 def generate_attribute_message_pair(src):
-    result = list()
+    attribute_list = list()
+    message_list = list()
     for line in src:
         game = json.loads(line)
         for phase in game["phases"]:
             state = phase["state"]
             attribute = generate_attribute(state)
-            message_json = get_messages(phase)
-            result.append((attribute, message_json,))
+            messages = phase["messages"]
+            attribute_list.append(attribute)
+            message_list.append(messages)
+    return attribute_list, message_list
+
+
+def generate_attribute_list(src: TextIO, no_dup: bool = False):
+    result = list()
+    result_set = set()
+    
+    for line in src:
+        game = json.loads(line)
+        for phase in game["phases"]:
+            state = phase["state"]
+            attribute = generate_attribute(state)
+            if no_dup:
+                atrb_string = attribute.tostring()
+                if atrb_string not in result_set:
+                    result_set.add(atrb_string)
+                    result.append(attribute)
+            else:
+                result.append(attribute)
+    
     return result

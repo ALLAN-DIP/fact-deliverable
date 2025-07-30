@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
+# check=error=true
 
-FROM node:20.18.0-alpine3.20 AS app-builder
+FROM node:22.17.0-alpine3.22 AS app-builder
 
 WORKDIR /app
 
@@ -12,18 +13,15 @@ RUN npm install --force
 COPY diplomacy/web/ /app
 COPY diplomacy/maps/ /maps
 
-# Needed to work around changes in OpenSSL 3.0
-ENV NODE_OPTIONS=--openssl-legacy-provider
-
 RUN npm run build
 
-FROM python:3.7.17-alpine3.18 AS server
+FROM python:3.11.13-alpine3.22 AS server
 
-RUN apk upgrade --no-cache
+RUN apk --no-cache upgrade
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir pip==24.0 \
+RUN pip install --no-cache-dir pip==25.1.1 \
     && pip uninstall --yes setuptools wheel
 
 # Install required packages

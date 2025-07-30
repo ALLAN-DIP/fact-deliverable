@@ -4,8 +4,6 @@ default:
 
 SHELL=/usr/bin/env bash
 
-PYTHON_FILES=$(shell git ls-files '*.py' | sort | tr '\n' ' ')
-
 export PYTHONPATH := $(shell realpath .)
 
 .PHONY: lock
@@ -48,9 +46,7 @@ markdownlint:
 
 .PHONY: mypy
 mypy:
-ifneq ($(PYTHON_FILES),)
-	mypy $(PYTHON_FILES)
-endif
+	pre-commit run --all-files mypy
 
 .PHONY: prettier
 prettier:
@@ -58,13 +54,11 @@ prettier:
 
 .PHONY: pylint
 pylint:
-ifneq ($(PYTHON_FILES),)
-	pylint $(PYTHON_FILES)
-endif
+	pre-commit run --all-files pylint
 
 .PHONY: ruff
 ruff:
-	pre-commit run --all-files ruff
+	pre-commit run --all-files ruff-check
 
 .PHONY: shellcheck
 shellcheck:
@@ -78,6 +72,10 @@ shfmt:
 yamllint:
 	pre-commit run --all-files yamllint
 
+.PHONY: zizmor
+zizmor:
+	pre-commit run --all-files zizmor
+
 .PHONY: precommit
 precommit:
 	pre-commit run --all-files
@@ -85,10 +83,10 @@ precommit:
 .PHONY: test
 test:
 	export ASYNC_TEST_TIMEOUT=180 && \
-	pytest
+	python -X dev -bb -m pytest
 
 .PHONY: check
-check: precommit mypy pylint test
+check: precommit test
 
 .PHONY: fix
 fix: lock check
@@ -105,7 +103,7 @@ upgrade:
 
 .PHONY: install
 install:
-	make update
+	$(MAKE) update
 
 TAG ?= latest
 TARGET ?= base
@@ -122,4 +120,4 @@ build:
 .PHONY: build-baseline-lr
 build-baseline-lr:
 	TARGET=baseline-lr \
-	make build
+	$(MAKE) build

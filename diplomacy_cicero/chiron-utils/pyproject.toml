@@ -1,5 +1,8 @@
 [build-system]
-requires = ["setuptools>=66.1"] # Minimum version that properly bundles `file:`s in sdists
+requires = [
+  # Minimum version that supports `pyproject.toml`
+  "setuptools>=61.0.0",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -24,11 +27,16 @@ classifiers = [
 requires-python = ">=3.7"
 license = { text = "MIT" }
 dependencies = [
-  "daidepp @ git+https://git@github.com/SHADE-AI/daidepp.git@f84f7279fb4a31083ad8e4b5fcf6d1ed290bae0e",
+  # Pinned `daidepp` to `main`
+  "daidepp @ git+https://git@github.com/SHADE-AI/daidepp.git@fd027bcbcf7fa3956adcae2ea12493051c8e279e",
   # Pinned `diplomacy` to `main`
-  "diplomacy",
-  'importlib-metadata ; python_version < "3.10"',
-  "tornado",
+  "diplomacy @ git+https://git@github.com/ALLAN-DIP/diplomacy.git@9e7bf501b3b58bfb348dcc21671337cec40ea065",
+  # `importlib-metadata` `3.7.0` introduced `packages_distributions()`
+  'importlib-metadata>=3.7.0 ; python_version < "3.10"',
+  # `tornado` `3.1` introduced `ASYNC_TEST_TIMEOUT` environment variable
+  "tornado>=3.1",
+  # `typing_extensions` `3.10.0.0` introduced `TypedDict` and other types added in Python 3.8
+  'typing_extensions>=3.10.0.0 ; python_version < "3.8"',
 ]
 
 [project.optional-dependencies]
@@ -37,22 +45,39 @@ all = [
   "chiron_utils[base]",
   "chiron_utils[baseline-lr]",
   "chiron_utils[dev]",
+  "chiron_utils[llm-advisor]",
 ]
 # Default extra to make OCI image builds easier
 base = []
 baseline-lr = [
-  "baseline-models",
+  "baseline-models @ git+https://git@github.com/ALLAN-DIP/baseline-models.git@32bdb22d287385416bb7fbb58791d7139ded1268",
 ]
 dev = [
   # Use older `mypy` version to keep code compatible with Python 3.7
   "mypy<1.9",
-  "pre-commit",
-  "pylint",
-  "pytest",
+  # `pre-commit` `1.15.0` introduced `minimum_pre_commit_version` top-level key
+  "pre-commit>=1.15.0",
+  # Set a minimum version (released 2023-10-02, first to support `3.12`)
+  # to prevent possible resolution problems
+  "pylint>=3",
+  # `pytest` `6.0` introduced `--strict-config` argument and `pyproject.toml` support
+  "pytest>=6.0",
+]
+llm-advisor = [
+  "peft",
+  "torch",
+  # Recommended minimum version for Llama 3.1 support
+  "transformers>=4.43.2",
 ]
 
+[project.scripts]
+create_diplomacy_game = "chiron_utils.scripts.create_game:main"
+download_diplomacy_game = "chiron_utils.scripts.download_game:main"
+run_diplomacy_bot = "chiron_utils.scripts.run_bot:main"
+run_diplomacy_game = "chiron_utils.scripts.run_game:main"
+
 [project.urls]
-Homepage = "https://github.com/ALLAN-DIP/chiron-utils"
+homepage = "https://github.com/ALLAN-DIP/chiron-utils"
 
 [tool.black]
 line-length = 100
@@ -67,15 +92,24 @@ check-filenames = ""
 check-hidden = ""
 
 [tool.mypy]
-show_error_codes = true
+enable_error_code = [
+  "ignore-without-code",
+  "redundant-expr",
+  "truthy-bool",
+]
 ignore_missing_imports = true
 python_version = "3.7"
 strict = true
 warn_unreachable = true
 
 [[tool.mypy.overrides]]
-# Needed to prevent `.../site-packages/_pytest/mark/__init__.py:187: error: Positional-only parameters are only supported in Python 3.8 and greater  [syntax]`
-module = "pytest"
+# Needed to prevent a large number of errors related to Python 3.8 syntax being used
+module = [
+  "peft",
+  "pytest",
+  "torch.*",
+  "tornado.httputil",
+]
 follow_imports = "skip"
 
 [tool.ruff]
@@ -125,6 +159,18 @@ select = [
   "YTT", # flake8-2020
 ]
 ignore = [
+  # Do not prohibit f-strings in logging messages
+  # The documentation describes two motivations, but I (@aphedges) disagree with both:
+  # - Using f-strings means that string formatting is carried out eagerly, but
+  #   f-string formatting takes such a short time that optimizing it away isn't worth it.
+  # - Passing in arguments means that they can be used by other logging handlers
+  #   (e.g., structured logging), but our logging is *significantly* simpler than that.
+  # In addition, I personally was avoiding using f-strings for logging because of documented
+  # security concerns, but at the time of writing, I was unable to find an exploit that would
+  # actually affect us. Finally, the native formatting used by the `logging` module is ancient,
+  # so it cannot express some formats that f-strings can. In all, I believe that enforcing the use
+  # of the `logging` module's default formatter is not worth the inconveniences it causes.
+  "G004", # logging-f-string (from flake8-logging-format)
   # Do not switch to `Path.open()` because `open()` is easier to test with
   # e.g., `open(data_dir / "file_a.txt")` -> `open("test/file_b.txt")`
   "PTH123", # builtin-open (from flake8-use-pathlib)
@@ -193,7 +239,9 @@ broad-exception-caught
 score = false
 
 [tool.pytest.ini_options]
-addopts = "--verbosity=2"
+addopts = "-ra --strict-config --strict-markers --verbosity=2"
 filterwarnings = [
-  "ignore::DeprecationWarning",
+  "error",
 ]
+minversion = "6.0"
+xfail_strict = true

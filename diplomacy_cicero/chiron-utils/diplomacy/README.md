@@ -2,15 +2,13 @@
 
 This project contains an open-source DATC-compliant Diplomacy game engine, a client-server architecture for network play, a web interface to play against bots and to visualize games, and a DAIDE-compatible adapter to connect DAIDE bots to the server.
 
-<p align="center">
-  <img width="500" src="docs/images/map_overview.png" alt="Diplomacy Map Overview">
-</p>
+![Screenshot of Diplomacy overview map](docs/images/map_overview.png)
 
 ## Documentation
 
 The complete documentation is available at [diplomacy.readthedocs.io](https://diplomacy.readthedocs.io/).
 
-Update: the documentation isn't updated for the latest changes. See [here](https://fengs-organization-3.gitbook.io/diplomacy-documentation/) for (not all) example usage.
+Update: the documentation isn't updated for the latest changes. See [Feng's Diplomacy Documentation](https://fengs-organization-3.gitbook.io/diplomacy-documentation/) for (not all) example usage.
 
 ## Getting Started
 
@@ -69,24 +67,21 @@ It is also possible to install a web interface in React to play against bots and
 The web interface can be built and run with Docker:
 
 ```shell
-export MAPS_TO_LOAD=standard.map
-export PULL_POLICY=never
 make build
 docker compose up --detach
 ```
 
-The web interface will be accessible at http://localhost:3000.
+The web interface will be accessible at <http://localhost:3000>.
 
 To login, users can use admin/password or username/password. Additional users can be created by logging in with a username that does not exist in the database.
 
-![](docs/images/web_interface.png)
+![Screenshot of the web interface with an in-progress game](docs/images/web_interface.png)
 
 ### Visualizing a game
 
 It is possible to visualize a game by using the "Load a game from disk" menu on the top-right corner of the web interface.
 
-![](docs/images/visualize_game.png)
-
+![Screenshot of the web interface showing the "Load a game from disk" menu item](docs/images/visualize_game.png)
 
 ## Network Game
 
@@ -150,6 +145,7 @@ if __name__ == '__main__':
     asyncio.run(launch(game_id=str(random.randint(1, 1000))))
 
 ```
+
 ## License
 
 This project is licensed under the APGLv3 License - see the [LICENSE](LICENSE) file for details

@@ -1,0 +1,16 @@
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    image: elasticsearch:8.16.1
+    ports:
+      - 9200:9200
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+        - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+        - .snapshots:/mount/backups
+    deploy:
+      resources:
+        limits:
+          memory: 1GB

@@ -3,6 +3,7 @@ The repository is modularised into three main components:
 - model_code: Contains the base model code such as KNN and LR for training models
 - visualisation_code: Contains code for visualising suggestions
 - web_code: Contains starter code for a interactive web implementation (development has been paused)
+- message_advisor_code: Contains client code for Elastic Search vector database for querying message advice given game state
 
 ## Setup
 Perform the following setup to run the code.
@@ -31,3 +32,25 @@ Keyword arguments:
 Renders example suggestions on states defined in "examples.py"
 Keyword arguments:
 - -o:   The path to the output folder for the rendered suggestions overlayed on the map
+
+## message_advisor_code/restore_snapshot.py
+Populate elasticsearch index from snapshot for querying message advice
+Keyword arguments:
+- -e:   The URL of the elastic database API
+- -s:   The name of the snapshot being used
+
+The script requires a running elastic search instance.
+To start a local ES single-node cluster using docker:
+```bash
+cd src/baseline_models/message_advisor_code
+docker compose up
+```
+
+This will spin-up an elasticsearch instance accessible on http://localhost:9200
+
+To populate the elasticsearch index, download the snapshot from ['here'](https://drive.google.com/file/d/1ZcxDEwZPWYElUVZo-zm6ls0HLRlo4f2h/view?usp=drive_link), extract and put the resulting fs folder into src/baseline_models/message_advisor_code/.snapshots folder (create folder if it does not exist), then run the script:
+```bash
+python restore_snapshot.py
+```
+
+This will prompt elasticsearch to restore data from the snapshot in the background, which will take a few minutes

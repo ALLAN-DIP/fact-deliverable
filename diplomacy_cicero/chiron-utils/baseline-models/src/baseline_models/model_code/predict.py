@@ -10,6 +10,7 @@ from baseline_models.model_code.preprocess import generate_attribute
 from baseline_models.model_code.preprocess import get_season_phase
 from baseline_models.model_code.preprocess import get_units, get_retreats
 from baseline_models.model_code.constants import CLASSNOORDER
+from baseline_models.model_code.preprocess import get_power_of_unit, get_power_of_home
 
 from baseline_models.visualisation_code.custom_renderer import render_from_prediction
 from baseline_models.utils.utils import return_logger
@@ -183,9 +184,14 @@ def render_outputs(model_path: str, test_path: str, output_path: str, max_games=
                     if scalar > 0:
                         for m in range(len(sorted_probs[unit])):
                             sorted_probs[unit][m] = (sorted_probs[unit][m][0], sorted_probs[unit][m][1] / scalar)
-
+                    
+                    # getting the power of the unit/home
+                    power = get_power_of_unit(state, unit)
+                    if power is None:
+                        power = get_power_of_home(state, unit)
+                    
                     # Rendering the order suggestions and saving as a file.
-                    file_name = f"output_{i}_{state['name']}_{unit.replace('/', '_')}.svg".replace(" ", "_")
+                    file_name = f"output_{i}_{state['name']}_{power}_{unit.replace('/', '_')}.svg".replace(" ", "_")
                     render_from_prediction(state, sorted_probs, os.path.join(output_path, file_name))
                     sorted_probs.clear()
 

@@ -11,7 +11,7 @@ from diplomacy.utils.constants import SuggestionType
 
 from chiron_utils.bots.baseline_bot import BaselineBot, BotType
 from chiron_utils.daide2eng import gen_english
-from chiron_utils.parsing_utils import dipnet_to_daide_parsing
+from chiron_utils.parsing_utils import parse_dipnet_to_daide
 from chiron_utils.utils import get_other_powers
 
 
@@ -48,7 +48,7 @@ class RandomProposerBot(BaselineBot, ABC):
                 )
             )
             if len(suggested_random_orders) > 0:
-                commands = dipnet_to_daide_parsing(suggested_random_orders, self.game)
+                commands = parse_dipnet_to_daide(suggested_random_orders, self.game)
                 random_orders = [XDO(command) for command in commands]
                 if len(random_orders) > 1:
                     suggested_random_orders = PRP(AND(*random_orders))
@@ -112,6 +112,46 @@ class RandomProposerBot(BaselineBot, ABC):
         if self.bot_type == BotType.ADVISOR:
             await self.suggest_orders(orders)
 
+            # Generate (random) partial order suggestions
+            submitted_orders = self.game.get_orders(self.power_name)
+            orderable_locs = self.game.get_orderable_locations(self.power_name)
+            if 0 < len(submitted_orders) < len(orderable_locs):
+                locs_with_orders = {order.split()[1] for order in submitted_orders}
+                partial_orders = [
+                    order
+                    for order in self.get_random_orders()
+                    if order.split()[1] not in locs_with_orders
+                ]
+                await self.suggest_orders(partial_orders, partial_orders=submitted_orders)
+
+            # Generate (random) order probabilities
+            possible_orders = self.game.get_all_possible_orders()
+            for province in self.game.map.locs:
+                # `locs` uses lowercase for provinces with two coasts
+                province = province.upper()
+
+                if not possible_orders[province]:
+                    continue
+
+                orders = possible_orders[province]
+                orders = random.sample(orders, min(len(orders), 10))
+                # Sample probabilities from exponential distribution with default lambda
+                # to more closely resemble `LrProbsBot` output
+                orders_probabilities = {order: random.expovariate(1) for order in orders}
+                orders_probabilities = dict(
+                    sorted(orders_probabilities.items(), key=lambda x: (-x[1], x))
+                )
+                total_probs = sum(prob for prob in orders_probabilities.values())
+                predictions = {
+                    order: {
+                        "pred_prob": prob / total_probs,
+                        "rank": rank,
+                        "opacity": prob / total_probs,
+                    }
+                    for rank, (order, prob) in enumerate(orders_probabilities.items())
+                }
+                await self.suggest_orders_probabilities(province, predictions)  # type: ignore[arg-type]
+
             random_predicted_orders = {}
             for other_power in get_other_powers([self.power_name], self.game):
                 random_predicted_orders[other_power] = self.get_random_orders(other_power)
@@ -131,6 +171,8 @@ class RandomProposerAdvisor(RandomProposerBot):
         | SuggestionType.MOVE
         | SuggestionType.COMMENTARY
         | SuggestionType.OPPONENT_MOVE
+        | SuggestionType.MOVE_DISTRIBUTION_TEXTUAL
+        | SuggestionType.MOVE_DISTRIBUTION_VISUAL
     )
 
 

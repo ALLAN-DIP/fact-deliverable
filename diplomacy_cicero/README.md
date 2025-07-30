@@ -1,9 +1,9 @@
 # Diplomacy Cicero and Diplodocus
 
-This code contains checkpoints and training code the following papers:
+This code contains checkpoints and training code for the following papers:
 
 * ["Human-Level Play in the Game of Diplomacy by Combining Language Models with Strategic Reasoning"](https://www.science.org/doi/10.1126/science.ade9097) published in Science, November 2022.
-* ["Mastering the Game of No-Press Diplomacy via Human-Regularized Reinforcement Learning and Planning"](https://arxiv.org/abs/2210.05492) in review at ICLR 2023.
+* ["Mastering the Game of No-Press Diplomacy via Human-Regularized Reinforcement Learning and Planning"](https://arxiv.org/abs/2210.05492) accepted to ICLR 2023.
 
 ### Code
 A very brief orientation:
@@ -58,7 +58,7 @@ To use the advisor, run a command similar to the following:
   --use-ssl \
   --game_id test_game \
   --human_powers AUSTRIA ENGLAND \
-  --advice_levels 10 11
+  --advice_levels 'MESSAGE|MOVE|OPPONENT_MOVE' 'MOVE|OPPONENT_MOVE'
 ```
 
 To use the player, run a command similar to the following:
@@ -78,11 +78,11 @@ Use the following guidance when modifying arguments:
 - `--host` should be set to whichever domain the server is hosted at.
 - If your server is not using SSL, then drop the `--use-ssl` argument.
 - `--game_id` must match an existing game.
-- `--advice_levels` is the sum of the values for each advice type. For example, `11` means to provide advice for messages (`1`), moves (`2`), and opponent moves (`8`). For more information, see the output of `./run_cicero.sh latest advisor --help`.
+- `--advice_levels` is the joining of the values for each advice type with `|`. For example, `'MESSAGE|MOVE|OPPONENT_MOVE` means to provide advice for messages, moves, and opponent moves. The values need to be quoted in the shell so `|` is not interpreted as a shell pipe. For more information, see the output of `./run_cicero.sh latest advisor --help`.
 
 ### Downloading model files
 
-Please email <diplomacyteam@meta.com> to request the password. Then run `bash bin/download_model_files.sh <PASSWORD>`. This will download and decrypt all relevant model files into `./models`. This might take awhile. Please note the model files have their own license separate from the code in this repository. More details on this [can be found below](#license-for-model-weights).
+The password for the model files is the following: `dbEmG*yo@fuWzb79cx_pN7.TRm4cqk`. Run `bash bin/download_model_files.sh <PASSWORD>`. This will download and decrypt all relevant model files into `./models`. This might take awhile. Please note the model files have their own license (CC-by-NC 4.0) separate from the code in this repository. More details on this [can be found below](#license-for-model-weights).
 
 ### Accessing Cicero's experiment games
 

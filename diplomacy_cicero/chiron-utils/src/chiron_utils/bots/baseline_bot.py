@@ -4,16 +4,22 @@ from abc import ABC, abstractmethod
 import asyncio
 from dataclasses import dataclass
 from enum import Enum, auto
+import json
 import os
 import random
-from typing import Any, ClassVar, List, Mapping, Optional, Sequence
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Sequence, cast
+
+try:
+    from typing import TypedDict  # type: ignore[attr-defined]
+except ImportError:
+    from typing_extensions import TypedDict
 
 from diplomacy import Game, Message
 from diplomacy.client.network_game import NetworkGame
 from diplomacy.utils import strings as diplomacy_strings
 from diplomacy.utils.constants import SuggestionType
 
-from chiron_utils.utils import return_logger, serialize_message_dict
+from chiron_utils.utils import remove_invalid_orders, return_logger, serialize_message_dict
 
 logger = return_logger(__name__)
 
@@ -23,6 +29,20 @@ class BotType(str, Enum):
 
     ADVISOR = auto()
     PLAYER = auto()
+
+
+class OrderProbability(TypedDict):  # type: ignore[misc]
+    """Probability information for a single order.
+
+    Attributes:
+        pred_prob: Predicted probability of order.
+        rank: Determined by predicted probability sorted in decreasing order.
+        opacity: Normalized probability, used for rendering opacity.
+    """
+
+    pred_prob: float
+    rank: int
+    opacity: float
 
 
 DEFAULT_COMM_STAGE_LENGTH = 300  # 5 minutes in seconds
@@ -85,7 +105,7 @@ class BaselineBot(ABC):
         Returns:
             List of messages.
         """
-        messages = self.game.filter_messages(messages=self.game.messages, game_role=self.power_name)
+        messages = self.game.get_messages(game_role=self.power_name)
         received_messages = sorted(
             msg for msg in messages.values() if msg.sender != self.power_name
         )
@@ -185,8 +205,10 @@ class BaselineBot(ABC):
                 f"it does not provide {SuggestionType.MOVE.name} suggestions"
             )
 
+        orders = remove_invalid_orders(orders, self.game)
         payload = {"suggested_orders": orders}
         if partial_orders:
+            partial_orders = remove_invalid_orders(partial_orders, self.game)
             payload["player_orders"] = partial_orders
             suggestion_type = diplomacy_strings.SUGGESTED_MOVE_PARTIAL
         else:
@@ -196,6 +218,29 @@ class BaselineBot(ABC):
             payload=payload,
             suggestion_type=suggestion_type,
         )
+
+    def read_suggested_orders(self) -> List[str]:
+        """Read suggested orders for power from advisor.
+
+        Returns:
+            List of suggested orders.
+        """
+        received_messages = self.read_messages()
+        parsed_messages = [
+            json.loads(msg.message)
+            for msg in received_messages
+            if msg.type == diplomacy_strings.SUGGESTED_MOVE_FULL
+        ]
+        # Shouldn't be needed, but verify only processing advice we're the recipient of
+        parsed_messages = [
+            message for message in parsed_messages if message["recipient"] == self.power_name
+        ]
+        if not parsed_messages:
+            return []
+        latest_message = parsed_messages[-1]
+        logger.info("%s received order suggestions: %s", self.display_name, latest_message)
+        suggested_orders = cast(List[str], latest_message["payload"]["suggested_orders"])
+        return suggested_orders
 
     async def suggest_opponent_orders(self, opponent_orders: Mapping[str, Sequence[str]]) -> None:
         """Send predicted orders for opponent powers to the server.
@@ -214,11 +259,91 @@ class BaselineBot(ABC):
                 f"it does not provide {SuggestionType.OPPONENT_MOVE.name} suggestions"
             )
 
+        # Delete invalid orders
+        opponent_orders = {
+            power: remove_invalid_orders(orders, self.game)
+            for power, orders in opponent_orders.items()
+        }
+
         payload = {"predicted_orders": opponent_orders}
 
         await self.send_suggestion(
             payload=payload,
             suggestion_type=diplomacy_strings.SUGGESTED_MOVE_OPPONENTS,
+        )
+
+    def read_suggested_opponent_orders(self) -> Dict[str, List[str]]:
+        """Read predicted orders for opponent powers from advisor.
+
+        Returns:
+            Mapping from opponent powers to their predicted orders.
+        """
+        received_messages = self.read_messages()
+        parsed_messages = [
+            json.loads(msg.message)
+            for msg in received_messages
+            if msg.type == diplomacy_strings.SUGGESTED_MOVE_OPPONENTS
+        ]
+        # Shouldn't be needed, but verify only processing advice we're the recipient of
+        parsed_messages = [
+            message for message in parsed_messages if message["recipient"] == self.power_name
+        ]
+        if not parsed_messages:
+            return {}
+        latest_message = parsed_messages[-1]
+        logger.info("%s received opponent order suggestions: %s", self.display_name, latest_message)
+        suggested_opponent_orders = cast(
+            Dict[str, List[str]], latest_message["payload"]["predicted_orders"]
+        )
+        return suggested_opponent_orders
+
+    async def suggest_orders_probabilities(
+        self, province: str, orders_probabilities: Mapping[str, OrderProbability]
+    ) -> None:
+        """Send probabilities for suggested orders to the server.
+
+        Args:
+            province: Province orders apply to.
+            orders_probabilities: Mapping from possible orders to their probabilities.
+        """
+        if self.bot_type != BotType.ADVISOR:
+            raise TypeError(
+                f"{self.suggest_opponent_orders.__name__!r} cannot be called by {self.__class__.__name__!r} "
+                f"because it is not a {BotType.ADVISOR}"
+            )
+        if not (
+            self.suggestion_type & SuggestionType.MOVE_DISTRIBUTION_TEXTUAL
+            or self.suggestion_type & SuggestionType.MOVE_DISTRIBUTION_VISUAL
+        ):
+            raise ValueError(
+                f"{self.suggest_orders_probabilities.__name__!r} cannot be called because "
+                f"it does not provide {SuggestionType.MOVE_DISTRIBUTION_TEXTUAL.name} or "
+                f"{SuggestionType.MOVE_DISTRIBUTION_VISUAL.name} suggestions"
+            )
+
+        # Delete invalid orders and recalculate some fields
+        # `baseline-models` often includes orders that do not match the board state
+        valid_orders = remove_invalid_orders(list(orders_probabilities), self.game)
+        if set(valid_orders) != set(orders_probabilities):
+            total_probs = sum(
+                pred_prob["pred_prob"]
+                for order, pred_prob in orders_probabilities.items()
+                if order in valid_orders
+            )
+            orders_probabilities = {
+                order: {  # type: ignore[misc]
+                    "pred_prob": pred_prob["pred_prob"],
+                    "rank": rank,
+                    "opacity": pred_prob["pred_prob"] / total_probs,
+                }
+                for rank, (order, pred_prob) in enumerate(orders_probabilities.items())
+            }
+
+        payload = {"province": province, "predicted_orders": orders_probabilities}
+
+        await self.send_suggestion(
+            payload=payload,
+            suggestion_type=diplomacy_strings.SUGGESTED_MOVE_DISTRIBUTION,
         )
 
     async def suggest_message(self, recipient: str, message: str) -> None:
@@ -296,6 +421,8 @@ class BaselineBot(ABC):
                 f"{self.send_orders.__name__!r} cannot be called by {self.__class__.__name__!r} "
                 f"because it is not a {BotType.PLAYER}"
             )
+
+        orders = remove_invalid_orders(orders, self.game)
 
         logger.info("Sent orders: %s", orders)
 

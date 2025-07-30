@@ -22,15 +22,45 @@ BOTS: List[Type[BaselineBot]] = [
 # but there currently isn't a way to check if a given extra was used during installation.
 importable_modules = set(importlib_metadata.packages_distributions())
 if {"baseline_models"} < importable_modules:
+    from chiron_utils.bots.elastic_advisor import (
+        ElasticAdvisor as ElasticAdvisor,
+    )
     from chiron_utils.bots.lr_bot import (
         LrAdvisor as LrAdvisor,
         LrPlayer as LrPlayer,
     )
+    from chiron_utils.bots.lr_probs_bot import (
+        LrProbsSelfTextAdvisor as LrProbsSelfTextAdvisor,
+        LrProbsSelfTextVisualAdvisor as LrProbsSelfTextVisualAdvisor,
+        LrProbsSelfVisualAdvisor as LrProbsSelfVisualAdvisor,
+        LrProbsTextAdvisor as LrProbsTextAdvisor,
+        LrProbsTextVisualAdvisor as LrProbsTextVisualAdvisor,
+        LrProbsVisualAdvisor as LrProbsVisualAdvisor,
+    )
 
     BOTS.extend(
         [
+            ElasticAdvisor,
             LrAdvisor,
             LrPlayer,
+            LrProbsSelfTextAdvisor,
+            LrProbsSelfTextVisualAdvisor,
+            LrProbsSelfVisualAdvisor,
+            LrProbsTextAdvisor,
+            LrProbsTextVisualAdvisor,
+            LrProbsVisualAdvisor,
+        ]
+    )
+if {"peft", "torch", "transformers"} < importable_modules:
+    from chiron_utils.bots.csu_faaf_advisor_bot import FaafAdvisor as FaafAdvisor
+    from chiron_utils.bots.llm_advisor_bot import LlmAdvisor as LlmAdvisor
+    from chiron_utils.bots.llm_advisor_new_bot import LlmNewAdvisor as LlmNewAdvisor
+
+    BOTS.extend(
+        [
+            FaafAdvisor,
+            LlmAdvisor,
+            LlmNewAdvisor,
         ]
     )
 # Alphabetize list of classes

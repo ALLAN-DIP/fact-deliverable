@@ -1,10 +1,11 @@
 """A collection of various utilities useful for building bots."""
 
 import asyncio
+import itertools
 import json
 import logging
 import os
-from typing import Any, List, Mapping, Optional, Set
+from typing import Any, List, Mapping, Optional, Sequence
 
 from daidepp import AnyDAIDEToken, DAIDEGrammar, create_daide_grammar, daide_visitor
 from daidepp.grammar.grammar import MAX_DAIDE_LEVEL
@@ -45,6 +46,92 @@ POWER_NAMES_DICT = {
     "RUS": "RUSSIA",
     "TUR": "TURKEY",
 }
+
+mapping = {
+    "adr": ["Adriatic Sea"],
+    "aeg": ["Aegean Sea"],
+    "alb": ["Albania"],
+    "ank": ["Ankara"],
+    "apu": ["Apulia"],
+    "arm": ["Armenia"],
+    "bal": ["Baltic Sea"],
+    "bar": ["Barents Sea"],
+    "bel": ["Belgium"],
+    "ber": ["Berlin"],
+    "bla": ["Black Sea"],
+    "boh": ["Bohemia"],
+    "bre": ["Brest"],
+    "bud": ["Budapest"],
+    "bul/ec": ["Bulgaria (East Coast)"],
+    "bul/sc": ["Bulgaria (South Coast)"],
+    "bul": ["Bulgaria"],
+    "bur": ["Burgundy"],
+    "cly": ["Clyde"],
+    "con": ["Constantinople"],
+    "den": ["Denmark"],
+    "eas": ["Eastern Mediterranean"],
+    "edi": ["Edinburgh"],
+    "eng": ["English Channel"],
+    "fin": ["Finland"],
+    "gal": ["Galicia"],
+    "gas": ["Gascony"],
+    "gre": ["Greece"],
+    "lyo": ["Gulf of Lyon"],
+    "bot": ["Gulf of Bothnia"],
+    "hel": ["Heligoland Bight"],
+    "hol": ["Holland"],
+    "ion": ["Ionian Sea"],
+    "iri": ["Irish Sea"],
+    "kie": ["Kiel"],
+    "lvp": ["Liverpool"],
+    "lvn": ["Livonia"],
+    "lon": ["London"],
+    "mar": ["Marseilles"],
+    "mao": ["Mid-Atlantic Ocean"],
+    "mos": ["Moscow"],
+    "mun": ["Munich"],
+    "nap": ["Naples"],
+    "nao": ["North Atlantic Ocean"],
+    "naf": ["North Africa"],
+    "nth": ["North Sea"],
+    "nwy": ["Norway"],
+    "nwg": ["Norwegian Sea"],
+    "par": ["Paris"],
+    "pic": ["Picardy"],
+    "pie": ["Piedmont"],
+    "por": ["Portugal"],
+    "pru": ["Prussia"],
+    "rom": ["Rome"],
+    "ruh": ["Ruhr"],
+    "rum": ["Romania"],
+    "ser": ["Serbia"],
+    "sev": ["Sevastopol"],
+    "sil": ["Silesia"],
+    "ska": ["Skagerrak"],
+    "smy": ["Smyrna"],
+    "spa/nc": ["Spain (North Coast)"],
+    "spa/sc": ["Spain (South Coast)"],
+    "spa": ["Spain"],
+    "stp/nc": ["St. Petersburg (North Coast)"],
+    "stp/sc": ["St. Petersburg (South Coast)"],
+    "stp": ["St. Petersburg"],
+    "swe": ["Sweden"],
+    "syr": ["Syria"],
+    "tri": ["Trieste"],
+    "tun": ["Tunis"],
+    "tus": ["Tuscany"],
+    "tyr": ["Tyrolia"],
+    "tys": ["Tyrrhenian Sea"],
+    "ukr": ["Ukraine"],
+    "ven": ["Venice"],
+    "vie": ["Vienna"],
+    "wal": ["Wales"],
+    "war": ["Warsaw"],
+    "wes": ["Western Mediterranean"],
+    "yor": ["Yorkshire"],
+    " - ": ["to"],
+}
+
 
 # Option for debugging without specialized builds
 DEBUG_MODE = False
@@ -105,6 +192,20 @@ def serialize_message_dict(message_dict: Mapping[str, Any]) -> str:
     return json.dumps(message_dict, ensure_ascii=False, separators=(",", ":"))
 
 
+def remove_invalid_orders(orders: Sequence[str], game: Game) -> List[str]:
+    """Remove invalid orders from a list of orders.
+
+    This shouldn't be required, but some bots will attempt to make invalid orders
+    or include invalid orders in advice if we don't filter them out.
+    """
+    possible_orders = set(itertools.chain.from_iterable(game.get_all_possible_orders().values()))
+    invalid_orders = sorted(set(orders) - possible_orders)
+    if invalid_orders:
+        logger.info(f"Removing invalid orders: {invalid_orders}")
+        orders = [order for order in orders if order not in invalid_orders]
+    return list(orders)
+
+
 def get_order_tokens(order: str) -> List[str]:
     """Retrieves the order tokens used in an order.
 
@@ -130,7 +231,7 @@ def get_order_tokens(order: str) -> List[str]:
     return order_tokens
 
 
-def get_other_powers(powers: List[str], game: Game) -> Set[str]:
+def get_other_powers(powers: List[str], game: Game) -> List[str]:
     """Get all powers not provided in input.
 
     Args:
@@ -140,7 +241,7 @@ def get_other_powers(powers: List[str], game: Game) -> Set[str]:
     Returns:
         Powers in the game other than those given.
     """
-    return set(game.get_map_power_names()) - set(powers)
+    return sorted(set(game.get_map_power_names()) - set(powers))
 
 
 def neighboring_opps(

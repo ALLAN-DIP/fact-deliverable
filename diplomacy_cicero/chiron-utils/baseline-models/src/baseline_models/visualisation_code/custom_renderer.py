@@ -12,6 +12,8 @@ from baseline_models.utils.utils import return_logger
 
 logger = return_logger(__name__)
 
+from baseline_models.model_code.preprocess import get_power_of_home, get_season_phase
+
 
 def render_from_prediction(state: dict, predictions: dict, output_path: str) -> None:
     """
@@ -27,15 +29,13 @@ def render_from_prediction(state: dict, predictions: dict, output_path: str) -> 
     # Create a game and renderer
     game, phase = dict_to_state(state)
     renderer = CustomRenderer(game, phase=phase)
-
     # Assemble the list of alterations from the predictions
     alterations = list(list() for _ in range(len(POWERS)))
     for unit, orders in predictions.items():
-
         # Deal with retreating case where the unit has an *
         if phase[-1] == "R":
             unit = f"*{unit}"
-
+        
         # Find the corresponding power for the order
         for i, power in enumerate(POWERS):
             if power not in state["units"]:
@@ -44,7 +44,11 @@ def render_from_prediction(state: dict, predictions: dict, output_path: str) -> 
                 for order in orders:
                     alterations[i].append(order)
                 break
-
+            elif get_season_phase(state["name"]) == "WA" and get_power_of_home(state, unit) == power:
+                for order in orders:
+                    alterations[i].append(order)
+                break
+        
     # Perform the rendering
     renderer.custom_render(output_path=output_path, alterations=alterations)
 
@@ -114,7 +118,7 @@ class CustomRenderer(Renderer):
         return 1.5 - (1 - weight) * 3 / 4
 
     # Adapted from the renderer method of the Renderer class
-    def custom_render(self, incl_orders=True, incl_abbrev=False, output_format='svg', output_path=None, alterations=None) -> str | None:
+    def custom_render(self, incl_orders=True, incl_abbrev=True, output_format='svg', output_path=None, alterations=None) -> str | None:
         """
         Saves and returns a map with the units, orders and alterations rendered
         """
@@ -180,6 +184,8 @@ class CustomRenderer(Renderer):
             """
             try:
                 for unit in power.units:
+                    if unit[1:] in power.retreats:
+                        continue
                     xml_map = self._add_unit(xml_map, unit, power.name, is_dislodged=False)
                 for unit in power.retreats:
                     xml_map = self._add_unit(xml_map, unit, power.name, is_dislodged=True)
@@ -190,7 +196,6 @@ class CustomRenderer(Renderer):
 
                 # Rendering orders
                 if incl_orders:
-
                     # Regular orders (Normalized)
                     # A PAR H
                     # A PAR - BUR [VIA]

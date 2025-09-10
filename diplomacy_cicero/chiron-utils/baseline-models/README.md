@@ -33,24 +33,51 @@ Renders example suggestions on states defined in "examples.py"
 Keyword arguments:
 - -o:   The path to the output folder for the rendered suggestions overlayed on the map
 
-## message_advisor_code/restore_snapshot.py
-Populate elasticsearch index from snapshot for querying message advice
-Keyword arguments:
-- -e:   The URL of the elastic database API
-- -s:   The name of the snapshot being used
+## `message_advisor_code/restore_snapshot.py`
 
-The script requires a running elastic search instance.
-To start a local ES single-node cluster using docker:
+Restore Elasticsearch index from snapshot for querying message advice
+
+Keyword arguments:
+
+- `-e`/`--elastic_host`: The URL of the Elasticsearch database API
+- `-s`/`--snapshot`: The name of the snapshot being used
+
+The script requires a running Elasticsearch instance. To start a local Elasticsearch single-node cluster using Docker, run the following commands:
+
 ```bash
 cd src/baseline_models/message_advisor_code
 docker compose up
 ```
 
-This will spin-up an elasticsearch instance accessible on http://localhost:9200
+This will spin-up an Elasticsearch instance accessible at <http://localhost:9200>.
 
-To populate the elasticsearch index, download the snapshot from ['here'](https://drive.google.com/file/d/1ZcxDEwZPWYElUVZo-zm6ls0HLRlo4f2h/view?usp=drive_link), extract and put the resulting fs folder into src/baseline_models/message_advisor_code/.snapshots folder (create folder if it does not exist), then run the script:
-```bash
-python restore_snapshot.py
-```
+To restore the Elasticsearch index:
 
-This will prompt elasticsearch to restore data from the snapshot in the background, which will take a few minutes
+- Download the snapshot from GitHub at <https://github.com/ALLAN-DIP/large-file-storage/tree/main/elasticsearch_dump>:
+
+    ```bash
+    wget https://github.com/ALLAN-DIP/large-file-storage/raw/refs/heads/main/elasticsearch_dump/fs{1..3}.zip
+    ```
+
+- Extract the contents of `fs.zip`:
+
+    ```bash
+    unzip fs1.zip
+    unzip fs2.zip
+    unzip fs3.zip
+    ```
+
+- Put the resulting `fs` folder into the `src/baseline_models/message_advisor_code/.snapshots` folder, creating the folder if it does not exist:
+
+    ```bash
+    mkdir -p .snapshots
+    mv fs/ .snapshots/
+    ```
+
+- Run the script:
+
+    ```bash
+    python restore_snapshot.py
+    ```
+
+This will prompt Elasticsearch to restore data from the snapshot in the background, which will take several minutes.

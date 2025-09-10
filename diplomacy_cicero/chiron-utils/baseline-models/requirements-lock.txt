@@ -3,7 +3,7 @@ certifi==2024.8.30
 charset-normalizer==3.4.0
 colorama==0.4.6
 coloredlogs==15.0.1
-diplomacy @ file:///../diplomacy/
+diplomacy @ git+https://git@github.com/ALLAN-DIP/diplomacy.git@33b28982ba2b294e0508a263662ec92f7cff89b9
 elastic-transport==8.17.1
 elasticsearch==8.15.1
 humanfriendly==10.0

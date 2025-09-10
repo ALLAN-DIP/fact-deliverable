@@ -1842,6 +1842,7 @@ export class ContentGame extends React.Component {
                                             );
                                             this.setMessageInputValue("");
                                         }}
+                                        disabled={!this.state.hasInitialOrders}
                                     ></Button>
                                     <Button
                                         key={"f"}
@@ -1858,6 +1859,7 @@ export class ContentGame extends React.Component {
                                             );
                                             this.setMessageInputValue("");
                                         }}
+                                        disabled={!this.state.hasInitialOrders}
                                     ></Button>
                                 </Row>
                             )}
@@ -2240,7 +2242,7 @@ export class ContentGame extends React.Component {
                                                                 message: msg.message,
                                                                 sent: msg.time_sent,
                                                                 sender: msg.sender,
-                                                                direction: "incoming",
+                                                                direction: "outgoing",
                                                                 position: "single",
                                                             }}
                                                             avatarPosition={"tl"}
@@ -2267,6 +2269,7 @@ export class ContentGame extends React.Component {
                                                                         "accept",
                                                                     );
                                                                 }}
+                                                                disabled={!this.state.hasInitialOrders}
                                                                 invisible={!(isCurrent && !isAdmin)}
                                                             ></Button>
                                                             <Button
@@ -2280,6 +2283,7 @@ export class ContentGame extends React.Component {
                                                                         "reject",
                                                                     );
                                                                 }}
+                                                                disabled={!this.state.hasInitialOrders}
                                                                 invisible={!(isCurrent && !isAdmin)}
                                                             ></Button>
                                                         </div>
@@ -2394,6 +2398,14 @@ export class ContentGame extends React.Component {
             moveSuggestionForCurrentPower,
             STRINGS.SUGGESTED_MOVE_PARTIAL,
         );
+        // Don't display partial order advice if full order advice is newer
+        if (
+            latestMoveSuggestionFull !== null &&
+            latestMoveSuggestionPartial !== null &&
+            latestMoveSuggestionFull.time_sent > latestMoveSuggestionPartial.time_sent
+        ) {
+            latestMoveSuggestionPartial = null;
+        }
 
         let fullSuggestionComponent = null;
         let partialSuggestionComponent = null;
@@ -2751,7 +2763,20 @@ export class ContentGame extends React.Component {
                 );
             });
 
-            distributionSuggestionComponent = <div>{distributionMessages}</div>;
+            distributionSuggestionComponent = (
+                <div>
+                    <ChatMessage
+                        style={{ flexGrow: 1 }}
+                        model={{
+                            message: `Order probabilities for ${orderDistribution.province}:`,
+                            direction: "incoming",
+                            position: "single",
+                        }}
+                        avatarPosition={"tl"}
+                    ></ChatMessage>
+                    {distributionMessages}
+                </div>
+            );
         }
 
         if (
@@ -3263,7 +3288,7 @@ export class ContentGame extends React.Component {
         this.props.data.displayed = true;
 
         document.onkeydown = (event) => {
-            if (event.key === "Shift" && !event.repeat) {
+            if (event.key === "Shift" && !event.repeat && this.state.hasInitialOrders) {
                 this.setState({
                     shiftKeyPressed: true,
                     orderDistribution: [],

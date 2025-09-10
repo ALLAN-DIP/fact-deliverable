@@ -1,4 +1,4 @@
-"""Python script to restore elasticsearch index from snapshot"""
+"""Restore Elasticsearch index from snapshot for querying message advice."""
 
 from time import time
 import argparse
@@ -12,9 +12,9 @@ logger = return_logger(__name__)
 
 def main():
     # Keyword argument handling
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("-e", "--elastic_host", type=str, default=DEFAULT_HOST)
-    argparser.add_argument("-s", "--snapshot", type=str, default=SNAPSHOT_NAME)
+    argparser = argparse.ArgumentParser(__doc__)
+    argparser.add_argument("-e", "--elastic_host", type=str, default=DEFAULT_HOST, help="URL of the Elasticsearch database API")
+    argparser.add_argument("-s", "--snapshot", type=str, default=SNAPSHOT_NAME, help="Name of the snapshot being used")
 
     args = argparser.parse_args()
     host = args.elastic_host
